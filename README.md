@@ -1,23 +1,27 @@
 # 문규성 포트폴리오
 <img src="assets/img/증명사진.jpg" align="left" width="170" hspace="3" />
 
-Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상호작용 시스템을 직접 설계하고 구현해 온 게임 클라이언트 개발자 지원자입니다.
+Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상호작용 시스템을 직접 설계하고 구현해 온 게임 클라이언트 개발자 지원자입니다. 
 
-단순히 기능을 완성하는 것보다 초기화 순서, 데이터 구조, 책임 분리, 확장 단위처럼 유지보수성과 협업 효율에 영향을 주는 문제를 구조적으로 해결하는 데 집중했습니다.
+해당 포트폴리오에서는 3가지 프로젝트를 개발하며, 고민하고 구현했던 핵심적인 로직에 대해서 설명하고 있습니다.
 
 팀 프로젝트에서는 Addressables 기반 데이터 로딩 이후 매니저 초기화를 수행하는 부트스트랩 흐름, 스테이지 실행/규칙/보상 책임 분리, 저장용 데이터와 런타임 데이터 변환 자동화를 구현했습니다.
-
 개인 프로젝트에서는 플레이어와 AI가 공통 전투 실행 계층을 재사용하도록 구조화하고, 공격 가능 판정과 무기별 실행 로직을 분리해 전투 시스템의 확장성을 높였습니다.
+
+단순한 기능완성보다 초기화 순서, 데이터 구조, 책임 분리, 확장 단위처럼 유지보수성과 협업 효율에 영향을 주는 문제를 구조적으로 해결하는 데 집중한다는 개발 철학을
+이 포트폴리오에 담아 소개해드리고자 합니다.
 
 <br clear="left"/>
 
 ## 기술 스택
 
-- Language: C#
-- Engine: Unity 2022.3.62f3 LTS
-- Library / SDK: UniTask, Addressables, Coroutine
-- Data: JSON, ScriptableObject
-- Collaboration: Git, GitHub, Notion
+| 구분 | 기술 |
+| --- | --- |
+| Language | ![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white) |
+| Engine | ![Unity](https://img.shields.io/badge/Unity_2022.3.62f3_LTS-000000?style=for-the-badge&logo=unity&logoColor=white) |
+| Library / SDK | ![UniTask](https://img.shields.io/badge/UniTask-512BD4?style=for-the-badge&logo=unity&logoColor=white) ![Addressables](https://img.shields.io/badge/Addressables-000000?style=for-the-badge&logo=unity&logoColor=white) |
+| Data | ![JSON](https://img.shields.io/badge/JSON-000000?style=for-the-badge&logo=json&logoColor=white) ![ScriptableObject](https://img.shields.io/badge/ScriptableObject-000000?style=for-the-badge&logo=unity&logoColor=white) |
+| Collaboration | ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white) ![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white) ![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white) |
 
 ## 핵심 기술
 
