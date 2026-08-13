@@ -243,7 +243,7 @@ if (!_stageGateway.TryResetToStartStage())
 현재 구현은 `PlayerPrefs` JSON 기반 로컬 프로토타입입니다. 스테이지 전환 요청 수락이 실제 비동기 로딩 완료를 보장하지 않으므로 서버 도입 시 환생 상태와 시작 스테이지를 하나의 트랜잭션으로 확정해야 합니다.
 
 ---
-
+<div style="page-break-before: always;"></div>
 <a id="team-project-2"></a>
 # 2차 팀 프로젝트: 귀차니즘 용사
 
