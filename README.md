@@ -24,23 +24,105 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 
 ## 핵심 기술
 
-- `IManager` + `GetOrder()` 기반 초기화 오케스트레이션 (매니저 의존성/순서 불안정 해소)
-- `Addressables` + `UniTask.WhenAll` 기반 비동기 데이터 부트스트랩 (시작 단계 병렬 로딩/준비 상태 보장)
-- `Attribute` / `Reflection` + 메타데이터 캐싱 기반 저장↔런타임 자동 매핑 (수동 복사 누락/중복 감소)
-- `StageManager` / `Stage` / `StageRule` 책임 분리 설계 (콘텐츠 규칙 추가 시 수정 범위 축소)
-- 입력 주체(`PlayerController`/`NPCController`)와 전투 실행 계층(`MechBehavior`) 분리 (공통 전투 로직 재사용)
-- `IInteractable` + `PlayerEvents` 기반 상호작용/탐지/UI 분리 (기능 추가 시 결합도 완화)
+- [콘텐츠 규칙과 런타임 상태 분리](#project-k-stage): 출시 준비 프로젝트의 스테이지·던전 구조 재설계
+- [초기화·데이터 준비 상태 보장](#idle-hero-bootstrap): Addressables 로딩 이후 매니저 초기화
+- [입력 주체와 전투 실행 계층 분리](#personal-combat): 플레이어와 AI의 공통 실행 흐름
+- [컴포넌트 조합형 상호작용](#kamikakushi-interaction): 탐지·실행·UI 책임 분리
 
 ## 프로젝트 목차
 
 | 구분 | 프로젝트 | 장르 | 기간 | 역할 | 연결 링크 |
 | --- | --- | --- | --- | --- | --- |
-| [2차 팀](#team-project-2) | 귀차니즘 용사 | 방치형 RPG | 2026.03.03 - 2026.04.15 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/TeamProject)<br>[YouTube](https://youtu.be/7LdXl2Ow0QU) |
-| [개인](#personal-project) | 그때 갑자기 건담이 나타났다 | TPS 로그라이크 | 2026.01.29 - 2026.02.27 | 1인 개발 | [GitHub](https://github.com/ks0521/SingleProject)<br>영상 없음|
-| [1차 팀](#team-project-1) | 카미카쿠시 | 공포 | 2025.12.10 - 2025.12.26 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/First-Game-Project)<br>[YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY) |
+| 출시 준비 중 | [왕국군 키우기](#project-k) | 방치형 RPG | 프로젝트 2026.02–진행 중<br>본인 참여 2026.05–진행 중 | 클라이언트 개발 | [YouTube](https://www.youtube.com/watch?v=PBKFwkjvW5U) |
+| 팀 프로젝트 | [귀차니즘 용사](#team-project-2) | 방치형 RPG | 2026.03.03 - 2026.04.15 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/TeamProject)<br>[YouTube](https://youtu.be/7LdXl2Ow0QU) |
+| 개인 프로젝트| [그때 갑자기 건담이 나타났다](#personal-project) | TPS 로그라이크 | 2026.01.29 - 2026.02.27 | 1인 개발 | [GitHub](https://github.com/ks0521/SingleProject)|
+| 팀 프로젝트 | [카미카쿠시](#team-project-1) | 공포 | 2025.12.10 - 2025.12.26 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/First-Game-Project)<br>[YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY) |
 
 ---
 <div style="page-break-before: always;"></div>
+
+<a id="project-k"></a>
+# 진행 중 프로젝트: 왕국군 키우기
+
+> **대표 이미지 추가 예정**  
+> 메인 전투 화면 1장과 성장·장비 UI 1장을 공개 가능한 빌드 확보 후 추가합니다.
+
+3명이 실제 출시를 목표로 제작 중인 방치형 RPG입니다. 기존 프로토타입의 기능을 유지하면서 콘텐츠 추가와 운영에 대응할 수 있도록 스테이지, 장비, 성장 구조를 재정리하고 있습니다.
+
+- 프로젝트 기간: 2026.02–진행 중
+- 본인 참여 기간: 2026.05–진행 중
+- 팀 구성: 3인 개발
+- 본인 역할: 클라이언트 개발
+- 개발 환경: Unity 6, C#, UniTask, Addressables
+- 저장소: 팀 공개 범위 협의 후 추가
+- 현재 상태: 핵심 콘텐츠 통합 및 출시 준비 중
+
+<a id="project-k-stage"></a>
+## 🧩 핵심 기여 1. 스테이지 데이터·실행 상태·규칙 분리
+
+> **문제**  
+> 기존 스테이지 진행은 스테이지 진행과 추가 전투컨텐츠 실행이 여러 매니저에 걸쳐 있어 던전처럼 진행 방식이 다른 전투콘텐츠를 추가할수록 수정 범위가 커졌습니다.
+
+### 해결
+
+정적 콘텐츠 정의는 `StageDefinition`, 현재 실행 중인 몬스터와 처치 상태는 `StageSession`, 성공·실패 판정은 `IStageRule`로 분리했습니다. `StageManager`는 이들을 조합해 메인 진행, 보스 도전, 처치 수 조건, 골드·루비 던전 진입과 복귀를 조정합니다.
+
+```mermaid
+flowchart LR
+    Excel["Stage Excel"] -->|데이터 생성| Generator["StageDataGenerator"]
+    Generator --> Database["StageDatabaseSO"]
+    Database --> Provider["StageDefinitionProvider"]
+    Provider -->|정적 정의 제공| Manager["StageManager"]
+    Manager -->|실행 상태 생성| Session["StageSession"]
+    Manager -->|스폰 위임| Spawner["StageSpawnController"]
+    Manager -->|규칙 생성 요청| Factory["StageRuleFactory"]
+    Factory --> Rules["IStageRule\nMain / Boss / KillCount"]
+    Session -->|처치·전멸 상태 전달| Rules
+```
+
+### 결과
+
+- 스테이지 데이터, 실행 중 상태, 판정 규칙의 변경 이유를 분리했습니다.
+- 메인 진행 상태를 보존한 뒤 던전에서 복귀시 기존 진행상태를 유지하는 흐름을 추가했습니다.
+- 스테이지 클리어 이벤트를 퀘스트 등 다른 콘텐츠가 구독할 수 있는 기준점으로 만들었습니다.
+
+### 트레이드오프와 후속 과제
+
+`StageManager`가 아직 진입·복귀·팝업 이벤트까지 조정하므로 콘텐츠 종류가 더 늘어나면 전환 흐름을 별도 컨트롤러로 분리할 필요가 있습니다. 데이터 생성 실패와 리소스 로딩 실패에 대한 사용자 복구 흐름도 출시 전 보강 대상입니다.
+
+## 🧩 핵심 기여 2. 정책과 실행을 분리한 로컬 환생 프로토타입
+
+> **문제**  
+> 환생 가능 조건, 보상 계산, 저장, 스테이지 초기화를 한 흐름에서 처리하면 실패 지점에 따라 데이터와 현재 스테이지가 어긋날 수 있습니다.
+
+### 해결
+
+- `ReincarnationPolicy`: 현재 스테이지와 상태를 바탕으로 가능 여부와 다음 상태 계산
+- `ReincarnationService`: 미리보기, 중복 실행 방지, 저장과 스테이지 초기화 순서 조정
+- `ReincarnationStore`: 스키마 버전과 손상 데이터를 고려한 로컬 저장
+- `ReincarnationGateway`: 환생 로직이 `StageManager` 구현에 직접 의존하지 않도록 전환 요청 캡슐화
+
+저장 이후 스테이지 초기화가 거절되면 이전 상태를 다시 저장하는 롤백 경로도 추가했습니다.
+
+### 현재 한계
+
+현재 구현은 `PlayerPrefs` JSON 기반의 로컬 프로토타입입니다. 스테이지 전환 요청 수락이 실제 비동기 로딩 완료를 보장하지 않으며, 서버 도입 시 환생 상태와 시작 스테이지를 하나의 트랜잭션으로 확정해야 합니다.
+
+## 🧩 핵심 기여 3. 공용 인벤토리와 캐릭터 장착 상태 분리
+
+> **문제**  
+> 장비 보유 목록과 캐릭터별 장착 상태가 같은 매니저에 섞이면 가챠·보상·강화·UI가 특정 캐릭터 객체를 직접 참조하게 됩니다.
+
+### 해결
+
+전역 `EquipmentManager`가 공용 인벤토리, 드롭, 강화 진입점을 담당하고 각 캐릭터마다 `PlayerEquipmentManager`를 두어 캐릭터별 장착과 스탯 반영을 담당하도록 분리했습니다. `EquipmentInstance`에는 런타임 객체 대신 장착 캐릭터 인덱스를 저장해 상태 복원 경계를 명확히 했습니다.
+
+### 결과와 후속 과제
+
+가챠, 보상, 강화, 장비 UI가 동일한 공용 인벤토리를 사용하고, 장착 중 장비가 강화되면 해당 캐릭터 스탯을 즉시 다시 계산합니다. 
+서버 저장 도입 시 장착 인덱스 검증과 소유권 복원 규칙을 추가해야 합니다.
+
+---
 
 <a id="team-project-2"></a>
 # 2차 팀 프로젝트: 귀차니즘 용사
@@ -63,68 +145,103 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 - GitHub: [https://github.com/ks0521/TeamProject](https://github.com/ks0521/TeamProject)
 - 시연 영상: [YouTube](https://youtu.be/7LdXl2Ow0QU)
 
-## 🧩 핵심 구현 1. IManager 기반 초기화 파이프라인
+<a id="idle-hero-bootstrap"></a>
+<a id="idle-hero-bootstrap"></a>
+## 🧩 핵심 구현 1. 데이터 로딩과 매니저 초기화 파이프라인
 
 > **문제**  
-> 팀 작업물을 통합하는 과정에서 Unity 라이프사이클과 매니저 간 의존성이 얽혀 초기화 순서가 불안정해지는 문제가 발생했습니다.  
-> 또한 스테이지, 장비, 아이템, 재화 같은 필수 데이터가 준비되기 전에 시스템이 먼저 초기화될 위험이 있었습니다.
+> 팀 코드를 통합하면서 Unity 생명주기와 매니저 의존성이 얽혀 초기화 순서가 달라졌고, 필수 데이터가 준비되기 전에 시스템이 참조될 위험이 있었습니다.
 
 ### 해결
 
-공통 진입점인 `StartBootstrap`에서 Addressables 기반 데이터를 먼저 비동기 로딩하고, 로딩 완료 후 `GameManager`가 `IManager` 구현체를 수집해 `GetOrder()` 기준으로 정렬한 뒤 `Init()`을 순차 호출하는 초기화 파이프라인을 구성했습니다.
+`StartBootstrap`을 단일 진입점으로 두고 Stage, Equipment, Item, Currency 데이터를 `UniTask.WhenAll`로 병렬 로딩했습니다. 완료 후 `GameManager`가 `IManager` 구현체를 `GetOrder()` 순서로 정렬해 `Init()`을 호출하도록 구성했습니다.
 
-### 효과
+```mermaid
+sequenceDiagram
+    participant B as StartBootstrap
+    participant D as DataLoadManager
+    participant A as Addressables
+    participant G as GameManager
+    participant M as IManager 구현체
 
-데이터 로딩과 시스템 초기화 순서를 명확히 분리해 초기화 관련 오류를 줄였고, 신규 매니저를 추가할 때 `IManager` 구현과 초기화 우선순위 지정만으로 기존 초기화 흐름에 편입할 수 있게 되었습니다.
+    B->>D: InitAllData()
+    par Stage
+        D->>A: LoadAssetsAsync StageSO
+    and Equipment
+        D->>A: LoadAssetsAsync EquipmentSO
+    and Item
+        D->>A: LoadAssetsAsync ItemSO
+    and Currency
+        D->>A: LoadAssetsAsync CurrencySO
+    end
+    A-->>D: 네 데이터 그룹 반환
+    D-->>B: 데이터 준비 완료
+    B->>G: InitAllManagers()
+    loop GetOrder 오름차순
+        G->>M: Init()
+    end
+```
 
-### 구현 과정
+### 결과
 
-1. `IGameSystem` / `IManager` 인터페이스를 정의하고 각 매니저가 `GetOrder()`와 `Init()`을 구현하도록 구성했습니다.
-2. `GameManager`의 `Awake`에서 씬 내 `IGameSystem` 구현체를 수집하고 타입 기준으로 캐싱합니다.
-3. `StartBootstrap`에서 `DataLoadManager.InitAllData()`를 `await`한 뒤 `GameManager.InitAllManagers()`를 호출합니다.
-4. `InitAllManagers()`에서 수집된 시스템을 `GetOrder()` 기준으로 정렬하고 `IManager` 구현체의 `Init()`을 순차 실행합니다.
+- 네 데이터 그룹의 준비 완료 시점을 매니저 초기화보다 앞에 고정했습니다.
+- 신규 매니저는 `IManager` 구현과 우선순위 지정으로 초기화 흐름에 편입할 수 있습니다.
+- 로딩 실패는 부트스트랩 단계에서 감지하도록 구성했습니다.
+
+### 트레이드오프
+
+정수 우선순위는 단순하지만 값 충돌과 숨은 의존성을 만들 수 있습니다. 규모가 커지면 의존 대상을 명시하는 그래프 또는 DI 기반 초기화로 전환할 필요가 있습니다.
 
 ### 관련 코드
 
+- [StartBootstrap.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Data/Script/StartBootstrap.cs)
+- [DataLoadManager.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Managers/DataLoadManager.cs)
 - [GameManager.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Managers/GameManager.cs)
-- [StartBootstrap.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Data/Script/StartBootstrap.cs)
-- [DataLoadManager.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Managers/DataLoadManager.cs)
-<div style="page-break-before: always;"></div>
 
-## 🧩 핵심 구현 2. Addressables + UniTask 기반 비동기 데이터 로딩
-
-> **문제**  
-> 스테이지, 장비, 아이템, 재화 데이터가 여러 ScriptableObject로 분산되어 있어, 게임 시작 시 필요한 데이터를 안정적으로 로딩하고 이후 시스템 초기화와 연결하는 흐름이 필요했습니다.
-
-### 해결
-
-`DataLoadManager`에서 Addressables 라벨을 기준으로 주요 게임 데이터를 로딩하고, `UniTask.WhenAll`을 이용해 Stage, Equipment, Item, Currency 데이터를 병렬로 초기화했습니다.
-
-### 효과
-
-초기 데이터 로딩 단계를 명확히 분리했고, 여러 데이터 그룹을 병렬로 로딩해 부트스트랩 흐름을 단순화했습니다. 이후 매니저들은 데이터 로딩이 완료된 상태를 전제로 초기화될 수 있게 되었습니다.
-
-### 구현 과정
-
-1. `Addressables.LoadAssetsAsync<T>()`로 데이터 타입별 ScriptableObject를 로딩합니다.
-2. `UniTask.WhenAll()`로 여러 로딩 작업을 병렬 실행합니다.
-3. 로딩이 성공하면 `GameDataDictionaries`에 결과를 저장합니다.
-4. 로딩 실패 시 예외를 발생시켜 부트스트랩 단계에서 초기화 실패를 감지하도록 구성했습니다.
-
-### 관련 코드
-
-- [DataLoadManager.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Managers/DataLoadManager.cs)
-- [StartBootstrap.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Data/Script/StartBootstrap.cs)
-<div style="page-break-before: always;"></div>
-
-## 🧩 핵심 구현 3. StageManager / Stage / StageRule 기반 스테이지 구조 분리
+## 🧩 핵심 구현 2. StageManager / Stage / StageRule 기반 스테이지 구조 분리
 
 > **문제**  
 > 스테이지 전환, 몬스터 스폰, 클리어 조건 판정, 보상 지급 책임이 한 흐름에 몰리면 신규 스테이지 타입이나 도전 콘텐츠를 추가할 때 수정 범위가 커지는 문제가 있었습니다.
 
 ### 해결
 
-`StageManager`는 스테이지 전환과 진행 상태를 관리하고, `Stage`는 몬스터 스폰과 생명주기를 담당하며, `StageRule`은 클리어 조건과 보상 규칙을 담당하도록 역할을 분리했습니다.
+`StageManager`는 전환과 진행 상태, `Stage`는 몬스터 스폰과 생명주기, `StageRule`은 클리어 조건과 보상을 담당합니다. `Stage`의 몬스터 사망 이벤트를 현재 규칙에 연결해 실행과 판정을 분리했습니다.
+
+```mermaid
+classDiagram
+    direction LR
+    class StageManager {
+        +ChangeStage()
+        +StopCurrentStage()
+        +GetStageProgress()
+    }
+    class Stage {
+        +Start()
+        +Clear()
+        +OnMonsterKilledInStage
+    }
+    class StageRule {
+        <<abstract>>
+        +Enter()
+        +MonsterKilledInStage()
+        +Destroy()
+    }
+    class NormalStageRule
+    class ChallengeStageRule
+    class KillCount
+    class BossKill
+    class Survival
+
+    StageManager --> Stage : 생성·생명주기 관리
+    StageManager --> StageRule : 규칙 선택·이벤트 연결
+    Stage --> StageRule : 몬스터 사망 이벤트 전달
+    StageRule <|-- NormalStageRule : 상속
+    StageRule <|-- ChallengeStageRule : 상속
+    ChallengeStageRule <|-- KillCount : 상속
+    ChallengeStageRule <|-- BossKill : 상속
+    ChallengeStageRule <|-- Survival : 상속
+```
+
 
 ### 효과
 
@@ -144,7 +261,7 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 - [StageRule.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Battle/Script/StageRule.cs)
 <div style="page-break-before: always;"></div>
 
-## 🧩 핵심 구현 4. Attribute / Reflection 기반 저장 데이터 자동 매핑
+## 🧩 핵심 구현 3. Attribute / Reflection 기반 저장 데이터 자동 매핑
 
 > **문제**  
 > Unity `JsonUtility`는 `Dictionary` 직렬화를 지원하지 않아 저장용 데이터와 런타임 데이터 타입을 분리해야 했습니다.  
@@ -153,8 +270,29 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 ### 해결
 
 저장 데이터는 `List` 기반 구조로, 런타임 데이터는 `Dictionary` 기반 구조로 분리했습니다.
+공통 데이터 블록은 `[CommonType]`과 Reflection으로 자동 복사하고, 장비·아이템·스탯·스킬처럼 `List ↔ Dictionary` 변환이 필요한 블록만 명시적으로 변환했습니다. 이름과 타입이 일치하는 필드 정보는 `BlockMap`으로 한 번 캐싱합니다.
 
-공통으로 복사 가능한 데이터 블록은 `[CommonType]` Attribute로 표시하고, Reflection을 이용해 같은 이름과 타입을 가진 필드를 자동 매핑하도록 구현했습니다.
+```mermaid
+flowchart LR
+    Runtime["RuntimeProgressData\nDictionary 기반"]
+    Save["SaveProgressData\nList 기반"]
+    Converter["DataConverter"]
+    Attribute["CommonType Attribute"]
+    Cache["BlockMap 메타데이터 캐시"]
+    Explicit["장비·아이템·스탯·스킬\n명시적 변환"]
+    Json["JsonUtility / JSON"]
+
+    Runtime --> Converter
+    Converter -->|공통 블록 자동 복사| Attribute
+    Attribute --> Cache
+    Cache --> Save
+    Converter -->|List ↔ Dictionary| Explicit
+    Explicit --> Save
+    Save --> Json
+    Json --> Save
+    Save --> Converter
+    Converter --> Runtime
+```
 
 ### 효과
 
@@ -209,25 +347,36 @@ Reflection 메타데이터를 1회 캐싱해 저장/로드 시 반복 탐색 비
 - GitHub: [https://github.com/ks0521/SingleProject](https://github.com/ks0521/SingleProject)
 - 기획서: [Notion](https://www.notion.so/2f110afad1cd80fd868de0a4df86b3fe)
 
+<a id="personal-combat"></a>
 ## 🧩 핵심 구현 1. 플레이어 / AI 입력과 공통 전투 실행 계층 분리
 
 > **문제**  
-> 플레이어와 AI가 각각 이동, 회전, 공격 실행 로직을 따로 가지면 동일한 전투 기능이 중복되고, 기능 추가나 버그 수정 시 수정 범위가 커지는 문제가 있었습니다.
+> 플레이어와 AI는 입력을 결정하는 방식이 다르지만, 실제 기체의 이동·회전·공격·피격 경직은 동일한 규칙으로 동작합니다.<br/>각 컨트롤러가 기체 동작을 직접 구현하면 같은 기능이 중복되고, 물리 이동이나 경직 처리 방식을 변경할 때 양쪽 코드를 함께 수정해야 하는 문제가 있었습니다.
 
 ### 해결
 
-플레이어 입력은 `PlayerController`에서, AI 판단은 `NPCController`에서 담당하고, 실제 이동/회전/공격 실행은 `MechBehavior`에서 공통 처리하도록 분리했습니다.
+플레이어 입력과 AI 판단은 각각의 컨트롤러에 남겨두고, 실제 기체 동작은 MechBehavior에서 공통으로 실행하도록 분리했습니다.
+
+플레이어 측에서는 PlayerController가 이동 입력을 해석하고 PlayerWeaponController가 공격 입력과 무기 교체를 담당합니다. AI 측에서는 NPCController가 현재 상태와 타겟 조건을 바탕으로 이동 방향과 공격 시점을 결정합니다.
+
+두 주체가 결정한 이동과 공격 요청은 MechBehavior로 전달되며, MechBehavior는 Rigidbody 기반 이동, 방향 전환, 공격 실행 요청, 피격 경직처럼 기체에 공통으로 필요한 동작을 처리합니다.
+
+```mermaid
+flowchart LR
+    PlayerMove["PlayerController<br/>이동 입력"] -->|Move 요청| Behavior["MechBehavior<br/>공통 기체 실행"]
+    PlayerAttack["PlayerWeaponController<br/>공격 입력·무기 선택"] -->|Attack 요청| Inventory["MechWeaponInventory"]
+    NPC["NPCController<br/>상태 전이·타겟 판단"] -->|Move·Rotate 요청| Behavior
+    NPC -->|Attack 요청| Inventory
+    Inventory -->|현재 무기·조준·스탯 전달| Behavior
+    Behavior --> Physics["Rigidbody 이동<br/>회전·경직 처리"]
+    Behavior --> AttackFlow["공통 공격 파이프라인"]
+```
 
 ### 효과
 
-입력 주체가 달라도 동일한 전투 실행 로직을 재사용할 수 있게 되었고, 이동/공격/피격 경직 같은 핵심 동작의 수정 지점을 `MechBehavior` 중심으로 모을 수 있었습니다.
-
-### 구현 과정
-
-1. `PlayerController`는 키 입력을 받아 이동 축과 조작 상태를 계산한 뒤 `MechBehavior.Move()`를 호출하도록 구성했습니다.
-2. `NPCController`는 상태 전이와 타겟 판단을 통해 이동 방향과 공격 시점을 결정하도록 구성했습니다.
-3. `MechBehavior`는 `Rigidbody` 기반 이동, 타겟 회전, 공격 요청, 피격 경직 처리를 공통 실행 계층으로 담당합니다.
-4. 공격 요청은 `MechBehavior`에서 `AttackInvoker`로 전달해 이후 공격 파이프라인과 연결됩니다.
+- 입력 주체가 달라도 동일한 전투 실행 로직을 재사용할 수 있었습니다
+- 이동/공격/피격 경직 같은 핵심 동작의 수정 지점을 `MechBehavior` 중심으로 모을 수 있었습니다.
+- Raycast, 근접 공격, handler 기반 공격을 동일한 무기 진입점에서 분기합니다.
 
 ### 관련 코드
 
@@ -239,23 +388,50 @@ Reflection 메타데이터를 1회 캐싱해 저장/로드 시 반복 탐색 비
 ## 🧩 핵심 구현 2. AttackInvoker / WeaponParts 기반 공격 파이프라인 책임 분리
 
 > **문제**  
-> 공격 입력, 발사 가능 여부 검증, 무기별 실행, 탄약/재장전/딜레이 관리가 한 클래스에 몰리면 공격 타입 추가와 디버깅이 어려워지는 문제가 있었습니다.
+> 기존에는 공격 요청 처리, 재장전·공격 딜레이 검사, 최종 스탯 계산, 무기 타입별 실행, 탄약과 재장전 상태를 한 클래스에서 관리하는 방식을 사용했지만 이로인해 새로운 공격 방식을 추가하거나 공격 실패 원인을 추적하기 어려웠습니다.
+
+
 
 ### 해결
 
-공격 요청은 `MechBehavior`에서 시작하고, `AttackInvoker`가 재장전/공격 딜레이 등 발사 가능 조건을 검증한 뒤, `WeaponParts`가 무기 타입에 맞는 실제 공격 실행과 상태 관리를 담당하도록 분리했습니다.
+공격 흐름을 요청 전달, 공격 가능 판정, 무기별 실행의 세 단계로 분리했습니다.
+
+MechWeaponInventory는 현재 무기와 조준 정보를 선택하고 MechBehavior는 기체가 공격 가능한 상태인지 확인한 뒤 요청을 AttackInvoker에 전달합니다.
+
+AttackInvoker는 현재 무기의 재장전 상태와 공격 딜레이를 검사합니다. <br/>공격할 수 있는 경우에만 WeaponParts.Attack()을 호출하며 WeaponParts는 무기 데이터와 추가 스탯을 조합해 최종 공격 수치를 계산하고 공격 타입에 맞는 실행 경로를 선택합니다.
+
+```mermaid
+flowchart LR
+    Input["PlayerWeaponController<br/>또는 NPCController"] -->|공격 요청| Inventory["MechWeaponInventory<br/>무기·조준 선택"]
+    Inventory -->|Aim·Weapon·BonusStat| Behavior["MechBehavior<br/>기체 상태 확인"]
+    Behavior -->|AttackInvoke| Invoker["AttackInvoker<br/>재장전·딜레이 검사"]
+    Invoker -->|공격 가능| Weapon["WeaponParts<br/>최종 스탯·공격 실행"]
+
+    Weapon -->|AttackType.Raycast| Raycast["SphereCast 기반 공격"]
+    Weapon -->|AttackType.Melee| Melee["MeleeComboAttack"]
+    Weapon -->|그 외 타입| Handler["WeaponHandler 기반 실행"]
+```
 
 ### 효과
 
-공격 가능 판정과 실제 무기 실행 로직이 분리되어 디버깅 지점이 명확해졌고, Raycast, Projectile, Melee 같은 공격 타입을 동일한 진입점에서 관리할 수 있게 되었습니다.
+공격이 실행되지 않았을 때 원인을 다음 단계로 나누어 확인할 수 있게 되었습니다.
 
-### 구현 과정
+`입력·AI 판단
+→ 현재 무기 선택
+→ 기체 제어 가능 여부
+→ 재장전·공격 딜레이
+→ 무기별 공격 실행`
 
-1. `MechBehavior.Attack()`에서 현재 조준 정보, 무기 파츠, 추가 스탯을 `AttackInvoker`로 전달합니다.
-2. `AttackInvoker`는 `IsReloading`, `IsDelay` 상태를 확인해 공격 가능 여부를 판정합니다.
-3. `WeaponParts`는 무기 데이터와 보너스 스탯을 기반으로 `FinalStat`을 계산합니다.
-4. 공격 타입에 따라 SphereCast 기반 Raycast 공격, Projectile Handler, `MeleeComboAttack`으로 실행을 분기합니다.
-5. 공격 후 탄약 감소, 재장전, 공격 딜레이를 UniTask 기반 비동기 루프로 처리합니다.
+공격 가능 판정과 실제 공격 방식이 분리되어 Raycast와 근접 공격처럼 실행 방식이 다른 무기도 동일한 진입점을 사용할 수 있게 되었습니다. 
+
+무기별 탄약과 딜레이 상태도 각 WeaponParts 인스턴스가 관리하므로 무기 교체 시 상태를 독립적으로 유지할 수 있습니다.
+
+### 한계점
+
+WeaponParts가 최종 스탯 계산, 공격 타입 분기, 탄약, 딜레이, 재장전까지 담당해 책임이 여전히 많다고 생각됩니다. 
+공격 타입이 더 늘어난다면 Raycast·Melee·Projectile 실행을 각각 전략 객체로 분리하고, WeaponParts는 무기 상태와 실행 전략 선택만 담당하도록 개선하는 방식을 고려하고 있습니다.
+
+또한 공격 실패 결과가 현재 bool 중심이므로 UI나 AI가 실패 원인을 구분해야 한다면 Reloading, Delay, CannotControl, NoAmmo와 같은 명시적인 결과 타입이 필요합니다.
 
 ### 관련 코드
 
@@ -270,20 +446,43 @@ Reflection 메타데이터를 1회 캐싱해 저장/로드 시 반복 탐색 비
 
 ### 해결
 
-`NPCController`에 `Seek`, `Approach`, `Attack`, `Retreat`, `Reposition`, `Stunned` 상태를 두고 거리, 시야, 안전거리, 공격거리 기준으로 상태를 전이하도록 구성했습니다.
+NPC는 일정 판단 주기마다 타겟 유효성, 거리, 시야를 계산해 `Seek`, `Approach`, `Attack`, `Retreat`, `Reposition`, `Stunned` 다섯 개의 활성 상태를 선택합니다. 
+공격 거리·안전거리·판단 주기 같은 파라미터를 ScriptableObject 파라미터로 분리해 외부 데이터로 조정할 수 있게 했습니다.
+```mermaid
+stateDiagram-v2
+    [*] --> Seek
+    state Evaluate <<choice>>
 
-또한 AI 파라미터를 ScriptableObject 기반 데이터로 분리해 판단 주기, 공격 거리, 선호 거리, 회피 거리 같은 값을 외부 데이터로 조정할 수 있게 했습니다.
+    Seek --> Evaluate: 판단 주기
+    Approach --> Evaluate: 판단 주기
+    Attack --> Evaluate: 판단 주기
+    Retreat --> Evaluate: 판단 주기
+    Reposition --> Evaluate: 판단 주기
+
+    Evaluate --> Seek: 타겟 없음
+    Evaluate --> Retreat: 거리 < 안전거리
+    Evaluate --> Reposition: 시야 미확보
+    Evaluate --> Approach: 거리 > 공격거리
+    Evaluate --> Attack: 사거리 안 + 시야 확보
+```
+
+### 상태별 실행
+
+- `Seek`: 타겟 탐색 또는 정지
+- `Approach`: 타겟 방향 접근
+- `Retreat`: 안전거리 밖으로 후퇴
+- `Reposition`: 시야 확보를 위한 측면 이동
+- `Attack`: 공격과 저속 측면 이동
 
 ### 효과
 
 NPC 행동을 상태 단위로 분리해 디버깅과 튜닝이 쉬워졌고, 기체나 적 타입별 AI 성향을 파라미터 조정으로 확장할 수 있는 기반을 만들었습니다.
 
-### 구현 과정
+### 한계점
 
-1. `NPCController`에서 현재 타겟, 시야 여부, 거리 조건을 계산합니다.
-2. 일정 판단 주기마다 `ChangeTransition()`을 호출해 상태를 전환합니다.
-3. `Act()`에서 현재 상태에 따라 접근, 후퇴, 측면 이동, 공격 실행을 분기합니다.
-4. 선호 거리, 공격 거리, 안전 거리, 판단 주기 같은 값은 AI 파라미터로 분리해 튜닝 가능하도록 구성했습니다.
+`Stunned` enum과 실행 분기는 존재하지만 실제 전이 조건은 비활성화되어 현재 상태도에는 포함하지 않았습니다. 
+
+상태와 전이 수가 더 늘어나거나 각 상황에 맞는 효과가 필요하다면 NPC의 상태를 switch로 관리하지 않고 FSM으로 관리하는 방식으로 변경하려고 합니다.
 
 ### 관련 코드
 
@@ -324,29 +523,83 @@ NPC 행동을 상태 단위로 분리해 디버깅과 튜닝이 쉬워졌고, �
 - GitHub: [https://github.com/ks0521/First-Game-Project](https://github.com/ks0521/First-Game-Project)
 - 시연 영상: [YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY)
 
-## 🧩 핵심 구현 1. 인터페이스 기반 상호작용 시스템
+<a id="kamikakushi-interaction"></a>
+## 🧩 핵심 구현 1. Condition / Action 조합 기반 상호작용 오브젝트 제작
 
 > **문제**  
-> 오브젝트마다 상호작용 조건과 실행 로직을 개별 스크립트로 작성하면 아이템, 문, 은신 오브젝트, 단서 등 콘텐츠가 늘어날수록 중복 코드가 증가하고 추가 속도가 느려지는 문제가 있었습니다.
+> 아이템, 문, 단서, 회복 오브젝트마다 상호작용 조건과 실행 동작을 개별 스크립트로 작성하면 비슷한 코드가 반복됩니다. <br/>새로운 오브젝트를 추가할 때마다 플레이어 상호작용 코드까지 수정하면 콘텐츠가 늘어날수록 제작 속도가 느려지고 기존 기능에 영향을 줄 가능성도 커집니다.
 
 ### 해결
 
-`IInteractable`, `IInteractionCondition`, `IInteractAction`으로 상호작용 대상을 추상화했습니다.
+모든 상호작용 대상을 IInteractable로 추상화하고, 상호작용 가능 조건과 상호작용시 실행 동작을 각각 IInteractionCondition, IInteractAction 컴포넌트로 분리했습니다.
 
-오브젝트는 자신에게 부착된 조건 컴포넌트와 액션 컴포넌트를 수집하고, 플레이어는 `IInteractable` 인터페이스만 바라보도록 구성했습니다.
+InteractItems는 자신에게 부착된 조건과 액션 컴포넌트를 수집합니다. 상호작용 요청을 받으면 모든 조건을 검사하고, 성공한 경우 실행할 액션 목록을 InteractResult에 담아 반환합니다.
+
+새로운 오브젝트는 기존 플레이어 코드를 수정하지 않고 필요한 조건과 액션 컴포넌트를 추가·제거하거나 조합해 제작할 수 있습니다.
+```mermaid
+classDiagram
+    direction LR
+
+    class IInteractable {
+        <<interface>>
+        +Interact()
+        +GetContext()
+    }
+
+    class InteractItems {
+        <<abstract>>
+        +CanInteract()
+        +Interact()
+    }
+
+    class IInteractionCondition {
+        <<interface>>
+        +CanInteract()
+    }
+
+    class IInteractAction {
+        <<interface>>
+        +Execute()
+    }
+
+    class InteractResult {
+        +success
+        +actions
+        +message
+    }
+
+    IInteractable <|.. InteractItems : 구현
+    InteractItems o-- IInteractionCondition : 조건 수집·검사
+    InteractItems o-- IInteractAction : 실행 동작 수집
+    InteractItems --> InteractResult : 실행 목록 반환
+```
+
+### 오브젝트 구성 예시
+
+| 오브젝트 | 조건 컴포넌트 | 액션 컴포넌트 |
+| --- | --- | ---|
+| 일반 아이템 | 조건 없음 | 아이템 획득, 오브젝트 제거 |
+| 잠긴 문 | 특정 열쇠 보유 | 열쇠 소비, 문 열기 |
+| 회복 아이템 | 조건 없음 | 체력 회복, 오브젝트 제거 |
+| 단서 | 특정 진행 단계 | 목표 변경, 안내 UI 표시 |
+| 엔딩 트리거 | 선택지 완료 | 엔딩 상태 변경, 씬 전환 |
 
 ### 효과
+
+새로운 상호작용 오브젝트를 추가할 때 플레이어 코드를 수정하지 않고 기존 조건과 액션을 조합해서 제작할 수 있었습니다.
+
+잠긴 문처럼 기존 조건과 액션의 조합으로 표현할 수 있는 콘텐츠는 별도의 상호작용 절차를 다시 구현할 필요가 없습니다. <br/>조건 또는 실행 방식이 변경되더라도 해당 컴포넌트만 수정할 수 있어 콘텐츠 제작과 유지보수 범위를 줄였습니다.
+
 
 상호작용 오브젝트를 추가할 때 기존 플레이어 코드를 수정하지 않고 조건과 액션 컴포넌트를 조합하는 방식으로 확장할 수 있게 되었습니다.
 
 상호작용 가능 여부, 실행 결과, 실제 상태 변화 책임이 분리되어 유지보수 부담도 줄었습니다.
 
-### 구현 과정
+### 한계
 
-1. `IInteractable`에서 `Interact()`와 `GetContext()`를 정의해 모든 상호작용 오브젝트의 공통 진입점을 만들었습니다.
-2. `InteractItems`에서 `GetComponents<IInteractionCondition>()`과 `GetComponents<IInteractAction>()`으로 조건과 액션을 수집합니다.
-3. `CanInteract()`에서 모든 조건을 검사하고, 성공 시 `InteractResult`에 실행할 액션 목록을 담아 반환합니다.
-4. `PlayerInteract`는 반환된 `IInteractAction` 목록을 순회하며 `Execute()`를 호출합니다.
+컴포넌트 조합을 통해 재사용성을 높였지만 한 오브젝트에 조건과 액션이 많아지면 Inspector만 보고 실행 순서와 의도를 파악하기 어렵습니다.
+
+액션 실행 순서가 결과에 영향을 주는 경우 명시적인 우선순위나 검증 도구가 필요하며, 잘못된 컴포넌트 조합을 방지하려면 에디터 단계에서 구성 검사가 필요합니다.
 
 ### 관련 코드
 
@@ -360,27 +613,58 @@ NPC 행동을 상태 단위로 분리해 디버깅과 튜닝이 쉬워졌고, �
 ## 🧩 핵심 구현 2. Raycast 탐지 + PlayerEvents 기반 UI/상호작용 분리
 
 > **문제**  
-> 한 컴포넌트가 아이템 탐지, 상호작용 실행, UI 표시까지 모두 담당하면 기능이 늘어날수록 의존성이 커지고 UI나 상호작용 로직을 독립적으로 수정하기 어려웠습니다.
+> 하나의 컴포넌트에서 Raycast 탐지, 대상 보관, 상호작용 실행, 결과 표시까지 모두 담당하면 탐지 방식이나 UI를 변경할 때 상호작용 로직도 함께 수정해야 했습니다.<br/>기능이 늘어날수록 플레이어 코드가 UI와 구체적인 오브젝트 구현을 직접 참조하게 되어 각 기능을 독립적으로 수정하기 어려워졌습니다.
 
 ### 해결
+물체를 발견하고 상호작용 결과를 표시하기까지의 절차를 탐지, 이벤트 전달, 실행, UI 반응으로 분리했습니다.
 
-`CameraCrosshair`는 Raycast 탐지만 담당하고, 탐지된 `IInteractable`과 `InteractContext`를 `PlayerEvents`로 발행하도록 구성했습니다.
+- CameraCrosshair: 카메라 전방 Raycast와 상호작용 대상 탐지
+- PlayerEvents: 탐지 대상, 안내 문맥, 상호작용 결과 전달
+- PlayerInteract: 현재 대상 관리, 입력 확인, 상호작용 실행
+- Interaction UI: 안내 문구와 성공·실패 결과 표시
+- IInteractable: 오브젝트별 조건 검사와 실행 결과 생성
+- 
+```mermaid
+sequenceDiagram
+    actor User as Player
+    participant Camera as CameraCrosshair
+    participant Events as PlayerEvents
+    participant Interaction as PlayerInteract
+    participant Target as IInteractable
+    participant UI as Interaction UI
 
-`PlayerInteract`는 이벤트로 받은 대상에 대해 상호작용을 시도하고, UI는 `PlayerEvents`를 구독해 크로스헤어와 안내 텍스트를 갱신하도록 분리했습니다.
+    Camera->>Camera: Raycast 탐지
+
+    alt IInteractable 감지
+        Camera->>Events: OnFindInteractable(target)
+        Camera->>Events: OnRaycastEnter(context)
+        Events-->>Interaction: 현재 대상·Context 전달
+        Events-->>UI: 안내 문구 표시
+    else 대상에서 벗어남
+        Camera->>Events: OnRaycastOut()
+        Events-->>Interaction: 현재 대상 해제
+        Events-->>UI: 안내 문구 숨김
+    end
+
+    User->>Interaction: 상호작용 입력
+    Interaction->>Target: Interact(player)
+    Target-->>Interaction: InteractResult
+    Interaction->>Interaction: Action.Execute()
+    Interaction->>Events: OnInteract(result)
+    Events-->>UI: 성공·실패 결과 표시
+```
 
 ### 효과
 
-탐지, 실행, UI 표시 흐름이 이벤트를 기준으로 느슨하게 연결되어 각 파트를 독립적으로 수정할 수 있게 되었습니다.
+탐지 방식, 상호작용 실행, UI 표시를 이벤트로 느슨하게 연결하여 각 파트를 독립적으로 수정할 수 있게 되었습니다.
 
-상호작용 대상이 바뀌어도 UI와 플레이어 실행 로직의 결합을 줄일 수 있었습니다.
+Raycast 대상이 바뀌면 UI와 PlayerInteract가 같은 이벤트를 통해 각자 상태를 갱신하며, UI 디자인을 변경해도 탐지 또는 오브젝트 로직을 수정할 필요가 없습니다.<br/>
+상호작용이 실패한 경우에도 결과 메시지를 동일한 이벤트 경로로 전달할 수 있습니다.
 
-### 구현 과정
+### 한계
 
-1. `CameraCrosshair`에서 카메라 전방으로 Raycast를 수행하고 충돌 지점에 크로스헤어 위치를 보정합니다.
-2. `IInteractable`을 감지하면 `PlayerEvents.OnFindInteractable()`과 `OnRaycastEnter()`를 호출합니다.
-3. 대상에서 벗어나면 `OnRaycastOut()`을 발행해 상호작용 가능 상태를 해제합니다.
-4. `PlayerInteract`는 `GetInteractable`, `GetInteractContext`, `RaycastOut` 이벤트를 구독해 현재 대상과 상호작용 가능 여부를 관리합니다.
-5. 상호작용 결과는 `OnInteract()` 이벤트로 발행해 UI가 결과 메시지를 표시하도록 구성합니다.
+이벤트 기반 연결구조로 직접 참조를 줄였지만 호출 경로가 코드에 명시적으로 드러나지 않아 디버깅이 제한되는 경우가 있었습니다.<br/>
+이벤트 구독 해제 누락으로 중복 호출이나 파괴된 객체 참조가 발생할 가능성도 있습니다.
 
 ### 관련 코드
 
