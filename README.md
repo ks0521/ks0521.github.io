@@ -3,9 +3,10 @@
 
 Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상호작용 시스템을 직접 설계하고 구현해 온 게임 클라이언트 개발자 지원자입니다. 
 
-프로젝트를 반복하며 이전 구현의 한계를 다음 설계 원칙으로 전환해 왔습니다. 팀 프로젝트에서는 **공통 프레임워크**, **초기화·데이터 규약**, **기능 간 책임 경계**, **통합 기준**을 세우는 기술 리드 역할을 맡았습니다.
+프로젝트를 진행하며 이전 구현에서 부족했던 점을 다음 프로젝트의 설계에 반영해 왔습니다. 
+<br/>팀 프로젝트에서는 여러 개발자가 만든 기능이 같은 방식으로 시작되고 데이터를 주고받을 수 있도록 공통 구조와 연결 기준을 정리하는 역할을 맡았습니다.
 
-새 기능을 빠르게 추가하는 것뿐 아니라, 초기화 순서, 데이터 구조, 책임 분리, 확장 단위처럼 유지보수성과 협업 효율에 영향을 주는 문제를 구조적으로 해결하는 데 집중합니다.
+새 기능을 빠르게 추가하면서도 초기화 순서, 데이터 구조, 책임 분리, 확장 단위처럼 유지보수성과 협업 효율에 영향을 주는 문제를 구조적으로 해결하는 데 집중합니다.
 <br clear="left"/>
 
 ## 기술 스택
@@ -20,11 +21,11 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 
 ## 핵심 기술
 
-- [콘텐츠 규칙과 런타임 상태 분리](#project-k-stage): 프로젝트의 스테이지·던전 구조 재설계
-- [게임 로딩 리팩토링](#project-k-loading): 게임 실행 시 로딩 구조 재설계
-- [초기화·데이터 준비 상태 보장](#idle-hero-bootstrap): Addressables 로딩 이후 매니저 초기화
-- [입력 주체와 전투 실행 계층 분리](#personal-combat): 플레이어와 AI의 공통 실행 흐름
-- [컴포넌트 조합형 상호작용](#kamikakushi-interaction): 탐지·실행·UI 책임 분리
+- [스테이지 정의·런타임 상태·클리어 규칙 분리](#project-k-stage): 던전 추가와 메인 스테이지 복귀를 고려한 구조 설계
+- [씬 전환·게임 시작 파이프라인 재구성](#project-k-loading): 리소스 준비, 씬 활성화, 런타임 초기화 순서 보장
+- [데이터 로딩·매니저 초기화 순서 보장](#idle-hero-bootstrap): Addressables 로딩 완료 후 시스템 초기화
+- [입력 주체와 공통 전투 실행 계층 분리](#personal-combat): 플레이어와 AI의 전투 로직 재사용
+- [조합형 상호작용과 이벤트 기반 UI 분리](#kamikakushi-interaction): 탐지·실행·화면 갱신의 결합도 완화
 
 ## 성장 흐름
 
@@ -32,7 +33,7 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 | --- | --- | --- | --- |
 | 1 | 카미카쿠시 | 게임시작 및 씬 전환시 데이터 준비시점 고려 필요 | [기능 구현 전 데이터 준비 시점과 진입 순서를 명시](#idle-hero-bootstrap) |
 | 2 | 그때 갑자기 건담이 나타났다 | UI 일정 편중과 일부 클래스의 과도한 책임 | MVP우선 구현 및 [실행 책임 분산](#idle-hero-stage) |
-| 3 | 귀차니즘 용사 | 정수 우선순위와 분기 기반 규칙 선택의 확장 한계 | [데이터 정의·실행 상태·규칙·생성 책임 세분화](#project-k-stage) |
+| 3 | 귀차니즘 용사 | 초기화 의존성을 정수 우선순위로 표현해 실제 의존 관계가 드러나지 않음<br/> 스테이지 규칙 선택이 `StageManager`의 조건 분기에 남아있음 | [리소스 준비·씬 활성화·게임 시작의 완료 조건을 단계별로 구분](#project-k-loading) <br/> [스테이지 정의·런타임 상태·클리어 규칙·스폰 책임 분리](#project-k-stage) |
 
 ## 프로젝트 목차
 
@@ -63,7 +64,7 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 - 개발 환경: Unity 6, C#, UniTask, Addressables
 
 <a id="project-k-stage"></a>
-## 🧩 핵심 기여 1. 스테이지 데이터·실행 상태·규칙 분리
+## 🧩 핵심 기여 1. 스테이지 정의·런타임 상태·클리어 규칙 분리
 
 > **문제**  
 > 기존 흐름에서는 메인 스테이지 진행, 몬스터 생명주기, 클리어 판정, 던전 진입·복귀가 여러 매니저에 걸쳐 있었습니다. 진행 방식이 다른 콘텐츠가 늘어날수록 기존 코드를 함께 수정해야 했습니다.
@@ -113,7 +114,7 @@ public static IStageRule Create(StageDefinition definition)
 데이터 생성과 리소스 로딩 실패 후 사용자가 다시 시도할 수 있는 복구 흐름도 출시 전 검증 대상입니다.
 
 <a id="project-k-loading"></a>
-## 🧩 핵심 기여 2. 게임실행구조 리팩토링
+## 🧩 핵심 기여 2. 씬 전환·리소스 로딩·게임 시작 파이프라인 재구성
 
 > **문제**  
 > 기존 `GameManager`는 씬 전환, Addressables 리소스 준비, 로딩 완료 대기, 리소스 해제, 캐릭터 생성과 게임 시작까지 함께 담당했습니다.
@@ -210,7 +211,7 @@ VFX 매핑은 프리팹 이름과 `eVFXType` 이름이 같다는 규칙에 의�
 - `VFXManager.cs`
 - `MonsterSpawner.cs`
 
-## 🧩 핵심 기여 3. 정책과 실행을 분리한 로컬 환생 프로토타입
+## 🧩 핵심 기여 3. 환생 정책·저장·실행 분리
 
 > **문제**  
 > 환생 가능 조건, 보상 계산, 저장, 스테이지 초기화를 한 흐름에서 처리하면 실패 지점에 따라 데이터와 현재 스테이지가 어긋날 수 있습니다.
@@ -265,7 +266,7 @@ if (!_stageGateway.TryResetToStartStage())
 - 시연 영상: [YouTube](https://youtu.be/7LdXl2Ow0QU)
 
 <a id="idle-hero-bootstrap"></a>
-## 🧩 핵심 구현 1. 데이터 로딩과 매니저 초기화 파이프라인
+## 🧩 핵심 구현 1. Addressables 데이터 로딩·매니저 초기화 순서 보장
 
 > **문제**  
 > 팀 코드를 통합하면서 Unity 생명주기와 매니저 의존성이 얽혔고, 필수 데이터가 준비되기 전에 시스템이 참조될 위험이 있었습니다.
@@ -328,7 +329,7 @@ await UniTask.WhenAll(
 - [GameManager.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Base/Managers/GameManager.cs)
 
 <a id="idle-hero-stage"></a>
-## 🧩 핵심 구현 2. StageManager / Stage / StageRule 기반 스테이지 구조 분리
+## 🧩 핵심 구현 2. 스테이지 실행·클리어 규칙·보상 책임 분리
 
 > **문제**  
 > 전환, 스폰, 클리어 판정, 보상을 한 흐름에서 처리하면 새로운 규칙을 추가할 때 진행 코드 전체를 수정해야 했습니다.
@@ -380,7 +381,7 @@ classDiagram
 - [StageRule.cs](https://github.com/ks0521/TeamProject/blob/main/Assets/Game/Battle/Script/StageRule.cs)
 <div style="page-break-before: always;"></div>
 
-## 🧩 핵심 구현 3. Attribute / Reflection 기반 저장 데이터 자동 매핑
+## 🧩 핵심 구현 3. Attribute·Reflection 기반 저장 / 런타임 데이터 변환
 
 > **문제**  
 > Unity `JsonUtility`는 `Dictionary` 직렬화를 지원하지 않아 저장용 데이터와 런타임 데이터 타입을 분리해야 했습니다.  
@@ -430,11 +431,15 @@ Reflection은 컴파일 단계 검증이 약하므로 필드 이름 변경 시 �
 
 ### 기술적 측면
 1차 팀 프로젝트에서 겪었던 초기화 타이밍 이슈를 해결하기 위해 `StartBootstrap → DataLoadManager → GameManager` 순서로 진입점을 고정했습니다.  
-또한 개인 프로젝트에서 검증한 책임 분리 원칙을 `StageManager / Stage / StageRule`로 확장해, 스테이지 규칙을 교체 가능한 단위로 분리했습니다.  
+또한 개인 프로젝트에서 검증한 책임 분리 원칙을 `StageManager / Stage / StageRule`로 확장해 스테이지 규칙을 교체 가능한 단위로 분리했습니다.  
 결과적으로 **초기화 안정성**, **데이터 준비 상태 보장**, **콘텐츠 규칙 확장성**을 확보했습니다.
 
-그러나 
+그러나 초기화 의존성을 정수 우선순위로 표현해 시스템 간 관계가 코드에 명확하게 드러나지 않았고, 스테이지 규칙 선택도 `StageManager`의 조건 분기에 남아 있었습니다. 또한 `Stage`가 몬스터 스폰과 런타임 진행 상태를 함께 관리해 콘텐츠 종류가 늘어날수록 수정 범위가 다시 커질 가능성이 있었습니다.
 
+왕국군 키우기에서는 이 경험을 바탕으로 리소스 준비, 씬 활성화, 런타임 초기화의 완료 조건을 구분했습니다. 스테이지 구조도 정적 설정을 담는 `StageDefinition`, 현재 진행 상태를 관리하는 `StageSession`, 클리어 여부를 판정하는 `IStageRule`, 몬스터 생성을 담당하는 `StageSpawnController`로 세분화했습니다. 규칙 생성은 `StageRuleFactory`로 이동해 `StageManager`가 구체적인 규칙 클래스를 직접 선택하지 않도록 개선했습니다.
+
+이를 통해 책임 분리는 클래스를 나누기만 하면 되는것이 아니라 서로 다른 시점과 이유로 변경되는 데이터와 동작을 독립적으로 구분하는 과정이라는 점을 배웠습니다.
+  
 ---
 <div style="page-break-before: always;"></div>
 
@@ -460,7 +465,7 @@ Reflection은 컴파일 단계 검증이 약하므로 필드 이름 변경 시 �
 - 기획서: [Notion](https://www.notion.so/2f110afad1cd80fd868de0a4df86b3fe)
 
 <a id="personal-combat"></a>
-## 🧩 핵심 구현 1. 입력 · 판단과 공통 전투 실행 분리
+## 🧩 핵심 구현 1. 입력 주체와 공통 전투 실행 계층 분리
 
 > **문제**  
 > 플레이어와 AI는 입력을 결정하는 방식이 다르지만 실제 기체의 이동·회전·공격·피격 경직은 동일한 규칙으로 동작합니다.
@@ -498,7 +503,7 @@ flowchart LR
 - [MechBehavior.cs](https://github.com/ks0521/SingleProject/blob/main/Assets/Gundam/Game/Script/Contents/Mech/MechBehavior.cs)
 <div style="page-break-before: always;"></div>
 
-## 🧩 핵심 구현 2. AttackInvoker / WeaponParts 기반 공격 파이프라인 책임 분리
+## 🧩 핵심 구현 2. 공격 요청·가능 판정·무기 실행 파이프라인 분리
 
 > **문제**  
 > 기존에는 공격 요청 처리, 재장전·공격 딜레이 검사, 최종 스탯 계산, 무기 타입별 실행, 탄약과 재장전 상태를 한 클래스에서 관리하는 방식을 사용했지만 이로인해 새로운 공격 방식을 추가하거나 공격 실패 원인을 추적하기 어려웠습니다.
@@ -551,7 +556,7 @@ UI나 AI가 실패 원인을 구분해야 한다면 Reloading, Delay, CannotCont
 - [WeaponParts.cs](https://github.com/ks0521/SingleProject/blob/main/Assets/Gundam/Game/Script/Contents/Weapon/WeaponParts.cs)
 <div style="page-break-before: always;"></div>
 
-## 🧩 핵심 구현 3. 상태 전이 기반 NPC AI 및 SO 파라미터 튜닝 구조
+## 🧩 핵심 구현 3. 상태 전이 기반 NPC AI·ScriptableObject 파라미터 분리
 
 > **문제**  
 > NPC가 단순 추적/공격만 수행하면 전투 상황 변화에 대응하기 어렵고, AI 행동 값을 코드 수정 없이 조정하기 어렵습니다.
@@ -633,7 +638,7 @@ NPC는 일정 판단 주기마다 타겟 유효성, 거리, 시야를 계산해 
 - 시연 영상: [YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY)
 
 <a id="kamikakushi-interaction"></a>
-## 🧩 핵심 구현 1. Condition / Action 조합 기반 상호작용 오브젝트 제작
+## 🧩 핵심 구현 1. Condition·Action 조합형 상호작용 구조
 
 > **문제**  
 > 아이템, 문, 단서, 회복 오브젝트마다 상호작용 조건과 실행 동작을 개별 스크립트로 작성하면 비슷한 코드가 반복됩니다. <br/>새로운 오브젝트를 추가할 때마다 플레이어 상호작용 코드까지 수정하면 콘텐츠가 늘어날수록 제작 속도가 느려지고 기존 기능에 영향을 줄 가능성도 커집니다.
@@ -714,7 +719,7 @@ classDiagram
 - [PlayerInteract.cs](https://github.com/ks0521/First-Game-Project/blob/main/Assets/_Kamikakushi/Scripts/Contents/Player/PlayerInteract.cs)
 <div style="page-break-before: always;"></div>
 
-## 🧩 핵심 구현 2. Raycast 탐지 + PlayerEvents 기반 UI/상호작용 분리
+## 🧩 핵심 구현 2. Raycast 탐지·상호작용 실행·UI 이벤트 흐름 분리
 
 > **문제**  
 > 하나의 컴포넌트에서 Raycast 탐지, 대상 보관, 상호작용 실행, 결과 표시까지 모두 담당하면 탐지 방식이나 UI를 변경할 때 상호작용 로직도 함께 수정해야 했습니다.<br/>기능이 늘어날수록 플레이어 코드가 UI와 구체적인 오브젝트 구현을 직접 참조하게 되어 각 기능을 독립적으로 수정하기 어려워졌습니다.
