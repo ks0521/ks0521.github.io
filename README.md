@@ -9,7 +9,7 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 새 기능을 빠르게 추가하면서도 초기화 순서, 데이터 구조, 책임 분리, 확장 단위처럼 유지보수성과 협업 효율에 영향을 주는 문제를 구조적으로 해결하는 데 집중합니다.
 <br clear="left"/>
 
-## 기술 스택
+## 기술스택
 
 | 구분 | 기술 |
 | --- | --- |
@@ -19,7 +19,7 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 | Data | ![JSON](https://img.shields.io/badge/JSON-000000?style=for-the-badge&logo=json&logoColor=white) ![ScriptableObject](https://img.shields.io/badge/ScriptableObject-000000?style=for-the-badge&logo=unity&logoColor=white) |
 | Collaboration | ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white) ![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white) ![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white) |
 
-## 핵심 기술
+## 핵심기술
 
 - [스테이지 정의·런타임 상태·클리어 규칙 분리](#project-k-stage): 던전 추가와 메인 스테이지 복귀를 고려한 구조 설계
 - [씬 전환·게임 시작 파이프라인 재구성](#project-k-loading): 리소스 준비, 씬 활성화, 런타임 초기화 순서 보장
@@ -39,33 +39,33 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 
 | 구분 | 프로젝트 | 장르 | 기간 | 역할 | 연결 링크 |
 | --- | --- | --- | --- | --- | --- |
-| 팀 프로젝트 | [왕국군 키우기](#project-k) | 방치형 RPG | 프로젝트 2026.02–진행 중<br>본인 참여 2026.05–진행 중 | 클라이언트 개발 | [YouTube](https://www.youtube.com/watch?v=PBKFwkjvW5U) |
-| 팀 프로젝트 | [Demon N Defense](#demon-n-defense) | 2D 오토배틀 디펜스 | 개발 2026.09–10<br>출시 2026.11.09 | 코어·웨이브·UI 개발 | [STOVE](https://store.onstove.com/ko/games/106168) · [GitHub](https://github.com/OZ-GAME-LAB/OZGL2_2) |
-| 팀 프로젝트 | [귀차니즘 용사](#team-project-2) | 방치형 RPG | 2026.03.03 - 2026.04.15 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/TeamProject)<br>[YouTube](https://youtu.be/7LdXl2Ow0QU) |
-| 개인 프로젝트| [그때 갑자기 건담이 나타났다](#personal-project) | TPS 로그라이크 | 2026.01.29 - 2026.02.27 | 1인 개발 | [GitHub](https://github.com/ks0521/SingleProject)|
-| 팀 프로젝트 | [카미카쿠시](#team-project-1) | 공포 | 2025.12.10 - 2025.12.26 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/First-Game-Project)<br>[YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY) |
+| 팀 프로젝트 | [왕국군 키우기](#project-k) | 방치형 RPG | 2026. 05 – 진행 중 | 클라이언트 개발 | [YouTube](https://www.youtube.com/watch?v=PBKFwkjvW5U) |
+| 팀 프로젝트 | [Demon N Defense](#demon-n-defense) | 2D 오토배틀 디펜스 | 2026. 09. 02 - 2026.11.09 | 코어 · 웨이브 · UI 개발 | [STOVE](https://store.onstove.com/ko/games/106168) |
+| 팀 프로젝트 | [귀차니즘 용사](#team-project-2) | 방치형 RPG | 2026. 03. 03 - 2026. 04. 15 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/TeamProject)<br>[YouTube](https://youtu.be/7LdXl2Ow0QU) |
+| 개인 프로젝트| [그때 갑자기 건담이 나타났다](#personal-project) | TPS 로그라이크 | 2026. 01. 29 - 2026. 02. 27 | 1인 개발 | [GitHub](https://github.com/ks0521/SingleProject)|
+| 팀 프로젝트 | [카미카쿠시](#team-project-1) | 공포 | 2025. 12. 10 - 2025. 12. 26 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/First-Game-Project)<br>[YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY) |
 
 ---
 <div style="page-break-before: always;"></div>
 
 <a id="project-k"></a>
-# 진행 중 프로젝트: 왕국군 키우기
+# 왕국군 키우기
 
 <p align="center">
   <img src="/assets/img/왕국군키우기_메인전투1.png" width="24%" alt="일반 스테이지 전투" />
   <img src="/assets/media/왕국군키우기_환생.gif" width="24%" alt="환생 진행" />
 </p>
 
-3명이 실제 출시를 목표로 제작 중인 방치형 RPG입니다. 기존 프로토타입의 기능을 유지하면서 콘텐츠 추가와 운영에 대응할 수 있도록 스테이지, 장비, 성장 구조를 재정리하고 있습니다.
+실제 출시를 목표로 제작 중인 방치형 RPG입니다. 기존 프로토타입의 기능을 유지하면서 콘텐츠 추가와 운영에 대응할 수 있도록 스테이지, 장비, 성장 구조를 재정리하고 있습니다.
 
-- 프로젝트 기간: 2026.02–진행 중
-- 본인 참여 기간: 2026.05–진행 중
-- 팀 구성: 3인 개발
-- 본인 역할: 클라이언트 개발
-- 개발 환경: Unity 6, C#, UniTask, Addressables
+- **프로젝트 기간** : 2026.02 – 진행 중
+- **본인 참여 기간** : 2026.05 – 진행 중
+- **팀 구성** : 3인 개발
+- **본인 역할** : 클라이언트 개발
+- **개발 환경** : Unity 6, C#, UniTask, Addressables
 
 <a id="project-k-stage"></a>
-## 🧩 핵심 기여 1. 스테이지 정의·런타임 상태·클리어 규칙 분리
+## 🧩 핵심 구현 1. 스테이지 정의·런타임 상태·클리어 규칙 분리
 
 > **문제**  
 > 기존 흐름에서는 메인 스테이지 진행, 몬스터 생명주기, 클리어 판정, 던전 진입·복귀가 여러 매니저에 걸쳐 있었습니다. 진행 방식이 다른 콘텐츠가 늘어날수록 기존 코드를 함께 수정해야 했습니다.
@@ -115,7 +115,7 @@ public static IStageRule Create(StageDefinition definition)
 데이터 생성과 리소스 로딩 실패 후 사용자가 다시 시도할 수 있는 복구 흐름도 출시 전 검증 대상입니다.
 
 <a id="project-k-loading"></a>
-## 🧩 핵심 기여 2. 씬 전환·리소스 로딩·게임 시작 파이프라인 재구성
+## 🧩 핵심 구현 2. 씬 전환·리소스 로딩·게임 시작 파이프라인 재구성
 
 > **문제**  
 > 기존 `GameManager`는 씬 전환, Addressables 리소스 준비, 로딩 완료 대기, 리소스 해제, 캐릭터 생성과 게임 시작까지 함께 담당했습니다.
@@ -212,7 +212,7 @@ VFX 매핑은 프리팹 이름과 `eVFXType` 이름이 같다는 규칙에 의�
 - `VFXManager.cs`
 - `MonsterSpawner.cs`
 
-## 🧩 핵심 기여 3. 환생 정책·저장·실행 분리
+## 🧩 핵심 구현 3. 환생 정책·저장·실행 분리
 
 > **문제**  
 > 환생 가능 조건, 보상 계산, 저장, 스테이지 초기화를 한 흐름에서 처리하면 실패 지점에 따라 데이터와 현재 스테이지가 어긋날 수 있습니다.
@@ -247,19 +247,19 @@ if (!_stageGateway.TryResetToStartStage())
 <div style="page-break-before: always;"></div>
 <a id="demon-n-defense"></a>
 
-# 출시 프로젝트: Demon N Defense
+# Demon N Defense
 
 <p align="center">
   <img src="assets/media/DnD_플레이.gif" width="544" alt="Demon N Defense 인게임 플레이" />
 </p>
 
-악마 군단을 육성하고 배치해 인간 군대의 침공을 막는 2D 오토배틀 디펜스 게임입니다. 245 Studio에서 개발해 2026년 11월 9일 STOVE에 출시했습니다. [STOVE 스토어](https://store.onstove.com/ko/games/106168)
+악마 군단을 육성하고 배치해 인간 군대의 침공을 막는 2D 오토배틀 디펜스 게임입니다. 5인 팀으로 개발해 2026년 11월 9일 STOVE에 출시했습니다. [STOVE 스토어](https://store.onstove.com/ko/games/106168)
 
-- **팀 구성**　개발 5인
-- **담당 역할**　코어 시스템·분기·웨이브를 맡았고 개발 중 UI를 인계받았습니다. 도감·플레이 기록을 구현하고 아웃게임 준비 씬의 초안을 제작했습니다.
-- **개발 환경**　Unity 6, C#, UniTask
+- **팀 구성** : 개발 5인
+- **역할** : 코어 시스템·분기·웨이브 밑 개발 중 UI 인계. 도감·플레이 기록을 구현하고 아웃게임 준비 씬의 초안을 제작했습니다.
+- **개발 환경** : Unity 6, C#, UniTask
 
-## 🧩 핵심 기여 1. 팀 모듈을 연결하는 웨이브 진행 구조
+## 🧩 핵심 구현 1. 팀 모듈을 연결하는 웨이브 진행 구조
 
 > **문제**
 >
@@ -279,7 +279,7 @@ UI 와이어프레임에 플레이어가 무엇을 보고 선택하는지 그렸
 
 다음 프로젝트에서는 흐름도에 입력별 종료 조건도 기록하고 싶습니다. 예를 들어 유물 획득을 포기하면 보상 단계를 마치고 게임을 계속하지만, 선택 대기 중 런이 종료되면 다음 웨이브로 넘어가서는 안 됩니다. 두 경우의 기대 결과를 인터페이스와 함께 정리하면 담당자들이 같은 기준으로 검증할 수 있습니다.
 
-## 🧩 핵심 기여 2. 이어하기를 위한 저장·복원 책임 분리
+## 🧩 핵심 구현 2. 이어하기를 위한 저장·복원 책임 분리
 
 > **문제**
 >
@@ -324,12 +324,12 @@ AI를 활용해 도감 저장을 확장했을 때, 초안의 코디네이터가 
 </p>
 
 
-- 개발 기간: 2026.03.03 - 2026.04.15, 약 6주
-- 팀 구성: 개발 4인
-- 본인 역할: 클라이언트 리드
-- 개발 환경: Unity 2022.3.62f3 LTS, C#, UniTask, Addressables
-- GitHub: [https://github.com/ks0521/TeamProject](https://github.com/ks0521/TeamProject)
-- 시연 영상: [YouTube](https://youtu.be/7LdXl2Ow0QU)
+- **개발 기간** : 2026.03.03 - 2026.04.15, 약 6주
+- **팀 구성** : 개발 4인
+- **역할** : 클라이언트 리드
+- **개발 환경** : Unity 2022.3.62f3 LTS, C#, UniTask, Addressables
+- **GitHub** : [https://github.com/ks0521/TeamProject](https://github.com/ks0521/TeamProject)
+- **시연 영상** : [YouTube](https://youtu.be/7LdXl2Ow0QU)
 
 <a id="idle-hero-bootstrap"></a>
 ## 🧩 핵심 구현 1. Addressables 데이터 로딩·매니저 초기화 순서 보장
@@ -523,12 +523,12 @@ Reflection은 컴파일 단계 검증이 약하므로 필드 이름 변경 시 �
   <sub>1인 개발로 플레이어/AI 공통 전투 실행 계층, 공격 파이프라인, 상태 전이 기반 NPC AI를 구현했습니다.</sub>
 </p>
 
-- 개발 기간: 2026.01.29 - 2026.02.27, 총 4주
-- 후속 보완: 2026.03–04, 공격 파이프라인 책임 재정리와 오류 수정
-- 팀 구성: 1인 개발
-- 개발 환경: Unity 2022.3.62f3 LTS, C#, UniTask
-- GitHub: [https://github.com/ks0521/SingleProject](https://github.com/ks0521/SingleProject)
-- 기획서: [Notion](https://www.notion.so/2f110afad1cd80fd868de0a4df86b3fe)
+- **개발 기간** : 2026.01.29 - 2026.02.27, 총 4주
+- **후속 보완** : 2026.03–04, 공격 파이프라인 책임 재정리와 오류 수정
+- **팀 구성** : 1인 개발
+- **개발 환경** : Unity 2022.3.62f3 LTS, C#, UniTask
+- **GitHub** : [https://github.com/ks0521/SingleProject](https://github.com/ks0521/SingleProject)
+- **기획서** : [Notion](https://www.notion.so/2f110afad1cd80fd868de0a4df86b3fe)
 
 <a id="personal-combat"></a>
 ## 🧩 핵심 구현 1. 입력 주체와 공통 전투 실행 계층 분리
@@ -696,12 +696,12 @@ NPC는 일정 판단 주기마다 타겟 유효성, 거리, 시야를 계산해 
   <sub>클라이언트 리드로 인터페이스 기반 상호작용 시스템과 Raycast 탐지, 이벤트 기반 UI 반응 구조를 구현했습니다.</sub>
 </p>
 
-- 개발 기간: 2025.12.10 - 2025.12.26, 약 2주
-- 팀 구성: 기획 1인, 아트 1인, 개발 3인
-- 본인 역할: 클라이언트 리드
-- 개발 환경: Unity 2022.3.62f2 LTS, C#, Coroutine
-- GitHub: [https://github.com/ks0521/First-Game-Project](https://github.com/ks0521/First-Game-Project)
-- 시연 영상: [YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY)
+- **개발 기간** : 2025.12.10 - 2025.12.26, 약 2주
+- **팀 구성** : 기획 1인, 아트 1인, 개발 3인
+- **역할** : 클라이언트 리드
+- **개발 환경** : Unity 2022.3.62f2 LTS, C#, Coroutine
+- **GitHub** : [https://github.com/ks0521/First-Game-Project](https://github.com/ks0521/First-Game-Project)
+- **시연 영상** : [YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY)
 
 <a id="kamikakushi-interaction"></a>
 ## 🧩 핵심 구현 1. Condition·Action 조합형 상호작용 구조
