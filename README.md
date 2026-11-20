@@ -40,6 +40,7 @@ Unity와 C#을 기반으로 전투, 스테이지, 데이터 저장/로드, 상�
 | 구분 | 프로젝트 | 장르 | 기간 | 역할 | 연결 링크 |
 | --- | --- | --- | --- | --- | --- |
 | 팀 프로젝트 | [왕국군 키우기](#project-k) | 방치형 RPG | 프로젝트 2026.02–진행 중<br>본인 참여 2026.05–진행 중 | 클라이언트 개발 | [YouTube](https://www.youtube.com/watch?v=PBKFwkjvW5U) |
+| 팀 프로젝트 | [Demon N Defense](#demon-n-defense) | 2D 오토배틀 디펜스 | 개발 2026.09–10<br>출시 2026.11.09 | 코어·웨이브·UI 개발 | [STOVE](https://store.onstove.com/ko/games/106168) · [GitHub](https://github.com/OZ-GAME-LAB/OZGL2_2) |
 | 팀 프로젝트 | [귀차니즘 용사](#team-project-2) | 방치형 RPG | 2026.03.03 - 2026.04.15 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/TeamProject)<br>[YouTube](https://youtu.be/7LdXl2Ow0QU) |
 | 개인 프로젝트| [그때 갑자기 건담이 나타났다](#personal-project) | TPS 로그라이크 | 2026.01.29 - 2026.02.27 | 1인 개발 | [GitHub](https://github.com/ks0521/SingleProject)|
 | 팀 프로젝트 | [카미카쿠시](#team-project-1) | 공포 | 2025.12.10 - 2025.12.26 | 클라이언트 리드 | [GitHub](https://github.com/ks0521/First-Game-Project)<br>[YouTube](https://www.youtube.com/watch?v=v1zOEZXVuqY) |
@@ -244,6 +245,71 @@ if (!_stageGateway.TryResetToStartStage())
 
 ---
 <div style="page-break-before: always;"></div>
+<a id="demon-n-defense"></a>
+
+# 출시 프로젝트: Demon N Defense
+
+<p align="center">
+  <img src="assets/media/DnD_플레이.gif" width="544" alt="Demon N Defense 인게임 플레이" />
+</p>
+
+악마 군단을 육성하고 배치해 인간 군대의 침공을 막는 2D 오토배틀 디펜스 게임입니다. 245 Studio에서 개발해 2026년 11월 9일 STOVE에 출시했습니다. [STOVE 스토어](https://store.onstove.com/ko/games/106168)
+
+- **팀 구성**　개발 5인
+- **담당 역할**　코어 시스템·분기·웨이브를 맡았고 개발 중 UI를 인계받았습니다. 도감·플레이 기록을 구현하고 아웃게임 준비 씬의 초안을 제작했습니다.
+- **개발 환경**　Unity 6, C#, UniTask
+
+## 🧩 핵심 기여 1. 팀 모듈을 연결하는 웨이브 진행 구조
+
+> **문제**
+>
+> 한 웨이브에서 전투가 끝나면 플레이어가 보상을 고르고 다음 웨이브를 준비합니다. 유물 카드를 고른 시점과 유물 효과가 실제 적용되는 시점이 달라, UI·유물·코어 담당자 사이에 보상 단계의 완료 기준이 필요했습니다.
+
+### 해결
+
+UI 와이어프레임에 플레이어가 무엇을 보고 선택하는지 그렸고, 게임 흐름도에는 각 입력을 어느 시스템이 처리하는지 표시했습니다. 두 자료를 놓고 팀원들과 모듈별 책임과 반환값을 정했습니다. 예를 들어 웨이브는 적 프리셋을 선택해 전달하고, 유닛 파트는 후보 ID와 가중치로 실제 병력을 편성하도록 합의했습니다. [게임 흐름도](https://app.diagrams.net/#G1kKwLJFC-wU5QC1A_7e1wA2vHiBrHJTWP#%7B%22pageId%22%3A%22EMV_Gr9QtNKrBiuXA8W_%22%7D)
+
+승리 보상에서도 같은 방식으로 역할을 정했습니다. UI는 유물 후보를 보여주고 선택·포기 결과를 반환합니다. 유물 시스템은 선택된 유물을 획득하고 효과를 적용합니다. `GameFlowController`는 `SelectAndApplyAsync()`의 완료를 기다린 뒤 다음 단계를 결정합니다. [승리 화면 와이어프레임](https://www.figma.com/board/uOxwMPr209bRFGIVtwbkde/GL2_02_TowerDefense?node-id=205-1781) · [UI 인터페이스 논의](https://www.figma.com/board/uOxwMPr209bRFGIVtwbkde/GL2_02_TowerDefense?node-id=285-2250)
+
+### 결과
+
+유물 선택창이 열려 있는 동안 웨이브 진행은 대기합니다. 선택한 유물을 획득하지 못하면 같은 화면에서 다시 선택하고, 보상 처리가 완료되면 코어가 진행을 재개합니다. 이로써 개별 유물의 효과를 코어에 추가하지 않고도 전투 승리부터 다음 단계까지 연결했습니다. [유물 선택 UI 통합 커밋](https://github.com/OZ-GAME-LAB/OZGL2_2/commit/ef86eb37)
+
+### 개선사항
+
+다음 프로젝트에서는 흐름도에 입력별 종료 조건도 기록하고 싶습니다. 예를 들어 유물 획득을 포기하면 보상 단계를 마치고 게임을 계속하지만, 선택 대기 중 런이 종료되면 다음 웨이브로 넘어가서는 안 됩니다. 두 경우의 기대 결과를 인터페이스와 함께 정리하면 담당자들이 같은 기준으로 검증할 수 있습니다.
+
+## 🧩 핵심 기여 2. 이어하기를 위한 저장·복원 책임 분리
+
+> **문제**
+>
+> 이어하기에서는 웨이브 진행도와 함께 건물·재화·유물·소모품 상태도 복원해야 했습니다. 각 파트의 값이 정확해도 적용 순서가 달라지면 플레이 상태가 바뀝니다. 예를 들어 유물로 소모품 슬롯을 늘린 상태에서 저장했다면, 슬롯 내용을 불러오기 전에 유물 효과부터 복원해야 합니다.
+
+### 해결
+
+각 담당자가 자기 파트의 상태를 수집하고 복원하도록 공통 인터페이스를 정의했습니다. 코디네이터는 각 파트가 반환한 데이터를 하나의 체크포인트로 묶고, 이어하기를 시작하면 의존 관계에 맞춰 복원을 요청합니다.
+
+```csharp
+public interface ISaveDataProvider<T> where T : class
+{
+    T CaptureSaveData();
+    void RestoreSaveData(T data);
+}
+```
+
+### 결과
+
+준비·보상 선택·이벤트·상점에서 저장한 런을 해당 단계부터 이어갈 수 있게 됐습니다. 이후 도감을 영구 저장에 연결할 때도 인게임과 아웃게임에서 같은 `ArchiveController`가 상태를 수집·복원하도록 했고, 씬에 다시 진입한 뒤에도 발견·읽음 상태가 유지되는 것을 확인했습니다. [체크포인트 저장·복원 커밋](https://github.com/OZ-GAME-LAB/OZGL2_2/commit/2a1b74d9) · [도감 저장 통합 커밋](https://github.com/OZ-GAME-LAB/OZGL2_2/commit/8efbb6bc)
+
+### 개선사항
+
+AI를 활용해 도감 저장을 확장했을 때, 초안의 코디네이터가 도감 상태 사본까지 보유해 같은 데이터를 두 곳에서 관리하는 문제를 발견했습니다. 사본을 제거하고 도감 컨트롤러에 상태 관리를 맡겼습니다. 이 경험을 통해 구현을 요청할 때 저장할 값뿐 아니라 그 값을 소유하는 객체와 다른 모듈이 호출할 수 있는 메서드까지 명시해야 한다는 점을 배웠습니다.
+
+현재는 새 Provider를 추가할 때 코디네이터에 직접 연결합니다. 다음 프로젝트에서는 시작 로딩 중 리플렉션으로 Provider를 수집하는 방식을 검토하고 싶습니다. 등록을 자동화하더라도 유물과 소모품처럼 순서에 의미가 있는 파트의 복원 순서는 명시적으로 관리할 계획입니다.
+
+---
+<div style="page-break-before: always;"></div>
+
 <a id="team-project-2"></a>
 # 2차 팀 프로젝트: 귀차니즘 용사
 
