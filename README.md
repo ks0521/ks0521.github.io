@@ -1,7 +1,8 @@
 # 문규성 포트폴리오
-<img src="assets/img/증명사진.jpg" align="left" width="170" hspace="3" />
+<img src="assets/img/증명사진.jpg" align="left" width="120" hspace="3" />
 
 Unity와 C#으로 게임 클라이언트를 개발하는 문규성입니다. 
+
 방치형 RPG ‘왕국군 키우기’에서는 현재 기획자와 2인 팀으로 Unity 클라이언트의 신규 기능 구현부터 서버 API 연동과 배포까지 개발을 전담하고 있으며 스토브에 출시한 ‘Demon N Defense’에서는 웨이브 진행과 이어하기를 설계해 팀원들이 구현한 기능을 연결했습니다.
 <br clear="left"/>
 
